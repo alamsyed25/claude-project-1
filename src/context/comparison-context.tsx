@@ -1,72 +1,44 @@
 'use client'
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-} from 'react'
-import type { ReactNode } from 'react'
-import type { DocumentFile, FileSlot } from '@/types'
+import { createContext, useContext, useState, type ReactNode } from 'react'
+import type { DocumentFile } from '@/types'
 
-interface ComparisonContextValue {
+/** Shape of the comparison context value. */
+type ComparisonContextValue = {
   /** The original document (left slot). */
   original: DocumentFile | null
   /** The modified document (right slot). */
   modified: DocumentFile | null
-  /** Sets a document for a specific slot. */
-  setDocument: (slot: FileSlot, doc: DocumentFile) => void
-  /** Clears a specific slot. */
-  clearDocument: (slot: FileSlot) => void
-  /** Clears both slots. */
-  clearAll: () => void
-  /** True when both documents are loaded. */
-  isReady: boolean
+  /** Sets the original document. Pass null to clear. */
+  setOriginal: (file: DocumentFile | null) => void
+  /** Sets the modified document. Pass null to clear. */
+  setModified: (file: DocumentFile | null) => void
+  /** Clears both document slots. */
+  reset: () => void
 }
 
-const ComparisonContext = createContext<ComparisonContextValue | null>(null)
-
-interface ComparisonProviderProps {
-  children: ReactNode
-}
+const ComparisonContext = createContext<ComparisonContextValue | undefined>(
+  undefined,
+)
 
 /** Provider that manages comparison state across pages. */
-export function ComparisonProvider({ children }: ComparisonProviderProps) {
+export function ComparisonProvider({ children }: { children: ReactNode }) {
   const [original, setOriginal] = useState<DocumentFile | null>(null)
   const [modified, setModified] = useState<DocumentFile | null>(null)
 
-  const setDocument = useCallback((slot: FileSlot, doc: DocumentFile) => {
-    if (slot === 'original') {
-      setOriginal(doc)
-    } else {
-      setModified(doc)
-    }
-  }, [])
-
-  const clearDocument = useCallback((slot: FileSlot) => {
-    if (slot === 'original') {
-      setOriginal(null)
-    } else {
-      setModified(null)
-    }
-  }, [])
-
-  const clearAll = useCallback(() => {
+  const reset = () => {
     setOriginal(null)
     setModified(null)
-  }, [])
-
-  const isReady = original !== null && modified !== null
+  }
 
   return (
     <ComparisonContext.Provider
       value={{
         original,
         modified,
-        setDocument,
-        clearDocument,
-        clearAll,
-        isReady,
+        setOriginal,
+        setModified,
+        reset,
       }}
     >
       {children}
@@ -81,7 +53,7 @@ export function ComparisonProvider({ children }: ComparisonProviderProps) {
 export function useComparison(): ComparisonContextValue {
   const context = useContext(ComparisonContext)
 
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useComparison must be used within a ComparisonProvider')
   }
 

@@ -26,75 +26,69 @@ function FileTypeBadge({ type }: { type: string }) {
 
 export default function ComparePage() {
   const router = useRouter()
-  const { original, modified, isReady } = useComparison()
+  const { original, modified } = useComparison()
 
-  // Redirect to upload page if documents aren't loaded
+  // Redirect if no files
   useEffect(() => {
-    if (!isReady) {
-      router.replace('/')
+    if (!original || !modified) {
+      router.push('/')
     }
-  }, [isReady, router])
+  }, [original, modified, router])
 
-  // Show nothing while redirecting
-  if (!isReady || !original || !modified) {
+  if (!original || !modified) {
     return null
   }
 
   return (
-    <main className="flex flex-1 flex-col px-6 pb-12 pt-10 md:px-8">
-      <div className="mx-auto w-full max-w-5xl">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Comparison Result
-          </h1>
-          <Link
-            href="/"
-            className="text-sm font-medium text-zinc-400 transition-colors hover:text-foreground"
-          >
-            &larr; Back to Upload
-          </Link>
+    <div className="container mx-auto px-4 py-8">
+      {/* Header with back link */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Comparison Result
+        </h1>
+        <Link
+          href="/"
+          className="text-sm font-medium text-zinc-400 transition-colors hover:text-foreground"
+        >
+          &larr; Back to Upload
+        </Link>
+      </div>
+
+      {/* File info grid */}
+      <div className="mb-8 mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+          <h3 className="mb-2 text-sm font-semibold text-white/60">
+            Original
+          </h3>
+          <div className="flex items-center gap-2">
+            <FileTypeBadge type={original.fileType} />
+            <p className="truncate font-medium text-white">{original.name}</p>
+          </div>
+          <p className="mt-1 text-sm text-white/60">
+            {formatFileSize(original.size)} · {original.lineCount.toLocaleString()} lines
+          </p>
         </div>
 
-        {/* Document Info Cards */}
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-            <div className="flex items-center gap-2">
-              <FileTypeBadge type={original.fileType} />
-              <p className="truncate text-sm font-medium text-zinc-300">
-                {original.name}
-              </p>
-            </div>
-            <div className="mt-2 flex items-center gap-3 text-xs text-zinc-500">
-              <span>{formatFileSize(original.size)}</span>
-              <span>·</span>
-              <span>{original.lineCount.toLocaleString()} lines</span>
-            </div>
+        <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+          <h3 className="mb-2 text-sm font-semibold text-white/60">
+            Modified
+          </h3>
+          <div className="flex items-center gap-2">
+            <FileTypeBadge type={modified.fileType} />
+            <p className="truncate font-medium text-white">{modified.name}</p>
           </div>
-
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-            <div className="flex items-center gap-2">
-              <FileTypeBadge type={modified.fileType} />
-              <p className="truncate text-sm font-medium text-zinc-300">
-                {modified.name}
-              </p>
-            </div>
-            <div className="mt-2 flex items-center gap-3 text-xs text-zinc-500">
-              <span>{formatFileSize(modified.size)}</span>
-              <span>·</span>
-              <span>{modified.lineCount.toLocaleString()} lines</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Diff placeholder — will be built in Phase 3 */}
-        <div className="mt-6 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50">
-          <div className="flex items-center justify-center p-12 text-zinc-500">
-            <p className="text-sm">
-              Diff engine will be connected in Phase 3
-            </p>
-          </div>
+          <p className="mt-1 text-sm text-white/60">
+            {formatFileSize(modified.size)} · {modified.lineCount.toLocaleString()} lines
+          </p>
         </div>
       </div>
-    </main>
+
+      {/* Placeholder for diff */}
+      <div className="rounded-lg border border-white/10 bg-white/5 p-8 text-center">
+        <p className="text-white/60">
+          Diff engine will be implemented in Phase 3
+        </p>
+      </div>
+    </div>
   )
 }
