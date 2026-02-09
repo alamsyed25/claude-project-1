@@ -21,10 +21,29 @@ export class ParseError extends Error {
   }
 }
 
+/**
+ * Normalizes parsed text output for consistent diffing.
+ * - Converts all line endings to \n
+ * - Trims trailing whitespace from each line
+ * - Collapses 3+ consecutive blank lines down to 2
+ * - Trims leading/trailing whitespace from entire content
+ */
+function normalizeText(text: string): string {
+  return text
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 /** Parses a plain text or markdown file. */
 async function parseTextFile(file: File): Promise<ParseResult> {
   try {
-    const content = await file.text()
+    const raw = await file.text()
+    const content = normalizeText(raw)
     return { content, lineCount: countLines(content) }
   } catch (error) {
     throw new ParseError(
@@ -44,7 +63,8 @@ async function parseDocxFile(file: File): Promise<ParseResult> {
       throw new Error('No text content extracted from DOCX')
     }
 
-    return { content: result.value, lineCount: countLines(result.value) }
+    const content = normalizeText(result.value)
+    return { content, lineCount: countLines(content) }
   } catch (error) {
     if (error instanceof ParseError) throw error
     throw new ParseError(
@@ -75,7 +95,8 @@ async function parsePdfFile(file: File): Promise<ParseResult> {
       textPages.push(pageText)
     }
 
-    const content = textPages.join('\n\n')
+    const raw = textPages.join('\n\n')
+    const content = normalizeText(raw)
     return { content, lineCount: countLines(content) }
   } catch (error) {
     if (error instanceof ParseError) throw error
