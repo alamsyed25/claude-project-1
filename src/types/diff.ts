@@ -7,8 +7,10 @@ export type ChangeType = 'added' | 'removed' | 'modified' | 'unchanged'
 export interface Change {
   /** The kind of change detected on this line. */
   type: ChangeType
-  /** The line number this change corresponds to. */
-  lineNumber: number
+  /** Line number in the original document. Null if the line was added. */
+  originalLineNumber: number | null
+  /** Line number in the modified document. Null if the line was removed. */
+  modifiedLineNumber: number | null
   /** Text from the original document. Empty string if the line was added. */
   originalText: string
   /** Text from the modified document. Empty string if the line was removed. */

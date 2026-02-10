@@ -44,33 +44,33 @@ function parseRawDiff(
     const actualLines = segment.value.endsWith('\n') ? lines.slice(0, -1) : lines
 
     if (segment.added) {
-      // Lines added in modified version
       for (const line of actualLines) {
         changes.push({
           type: 'added',
-          lineNumber: modifiedLineNum,
+          originalLineNumber: null,
+          modifiedLineNumber: modifiedLineNum,
           originalText: '',
           modifiedText: line,
         })
         modifiedLineNum++
       }
     } else if (segment.removed) {
-      // Lines removed from original version
       for (const line of actualLines) {
         changes.push({
           type: 'removed',
-          lineNumber: originalLineNum, // Use original line number for removals
+          originalLineNumber: originalLineNum,
+          modifiedLineNumber: null,
           originalText: line,
           modifiedText: '',
         })
         originalLineNum++
       }
     } else {
-      // Unchanged lines
       for (const line of actualLines) {
         changes.push({
           type: 'unchanged',
-          lineNumber: modifiedLineNum,
+          originalLineNumber: originalLineNum,
+          modifiedLineNumber: modifiedLineNum,
           originalText: line,
           modifiedText: line,
         })
@@ -84,54 +84,59 @@ function parseRawDiff(
 }
 
 /**
- * Applies smart position-based matching to detect modifications.
- * Consecutive remove/add pairs within ~5 line distance are classified as 'modified'.
+ * Applies smart matching to detect modifications.
+ * Pairs consecutive remove/add sequences into 'modified' changes.
+ *
+ * When a block of N removals is followed by M additions:
+ * - min(N,M) pairs become modifications
+ * - Remaining removals or additions stay as-is
  */
 function applySmartMatching(changes: Change[]): Change[] {
   const result: Change[] = []
-  const threshold = 5 // Max line distance to consider as modification
   let i = 0
 
   while (i < changes.length) {
-    const change = changes[i]
-
-    // Look for a removal followed by an addition within threshold distance
-    if (change.type === 'removed' && i + 1 < changes.length) {
-      let j = i + 1
-      let foundAddition = false
-
-      // Search within threshold
-      while (j < changes.length && j - i <= threshold) {
-        if (changes[j].type === 'added') {
-          // Found a matching addition - merge into modification
-          const modification: Change = {
-            type: 'modified',
-            lineNumber: changes[j].lineNumber,
-            originalText: change.originalText,
-            modifiedText: changes[j].modifiedText,
-          }
-          result.push(modification)
-          i = j + 1
-          foundAddition = true
-          break
-        } else if (changes[j].type === 'removed') {
-          // Another removal before an addition - skip this one
-          j++
-        } else {
-          // Unchanged line breaks the potential match
-          break
-        }
-      }
-
-      if (!foundAddition) {
-        // No matching addition found, keep as removal
-        result.push(change)
-        i++
-      }
-    } else {
-      // Not a removal or at end of list - keep as is
-      result.push(change)
+    if (changes[i].type !== 'removed') {
+      result.push(changes[i])
       i++
+      continue
+    }
+
+    // Collect consecutive removals
+    const removals: Change[] = []
+    while (i < changes.length && changes[i].type === 'removed') {
+      removals.push(changes[i])
+      i++
+    }
+
+    // Collect consecutive additions immediately following
+    const additions: Change[] = []
+    while (i < changes.length && changes[i].type === 'added') {
+      additions.push(changes[i])
+      i++
+    }
+
+    // Pair them up: min(removals, additions) become modifications
+    const pairCount = Math.min(removals.length, additions.length)
+
+    for (let p = 0; p < pairCount; p++) {
+      result.push({
+        type: 'modified',
+        originalLineNumber: removals[p].originalLineNumber,
+        modifiedLineNumber: additions[p].modifiedLineNumber,
+        originalText: removals[p].originalText,
+        modifiedText: additions[p].modifiedText,
+      })
+    }
+
+    // Remaining unmatched removals
+    for (let p = pairCount; p < removals.length; p++) {
+      result.push(removals[p])
+    }
+
+    // Remaining unmatched additions
+    for (let p = pairCount; p < additions.length; p++) {
+      result.push(additions[p])
     }
   }
 

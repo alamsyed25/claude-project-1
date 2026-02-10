@@ -23,7 +23,7 @@ type ComparisonContextValue = {
   /** Error from diff computation, if any. */
   diffError: UploadError | null
   /** Trigger diff computation. */
-  computeDiff: () => Promise<void>
+  computeDiff: () => void
 }
 
 const ComparisonContext = createContext<ComparisonContextValue | undefined>(
